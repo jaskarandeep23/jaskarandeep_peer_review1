@@ -2,10 +2,12 @@ import os
 import pymysql
 from urllib.request import urlopen
 
+import os
+
 db_config = {
-    'host': 'mydatabase.com',
-    'user': 'admin',
-    'password': 'secret123'
+    'host': os.environ.get('DB_HOST'),
+    'user': os.environ.get('DB_USER'),
+    'password': os.environ.get('DB_PASSWORD')
 }
 
 def get_user_input():
