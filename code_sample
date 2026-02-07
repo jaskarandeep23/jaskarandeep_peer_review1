@@ -1,33 +1,65 @@
 import os
 import pymysql
 from urllib.request import urlopen
+import subprocess
 
-import os
-
+#  Secure DB config — no hardcoded credentials
 db_config = {
     'host': os.environ.get('DB_HOST'),
     'user': os.environ.get('DB_USER'),
-    'password': os.environ.get('DB_PASSWORD')
+    'password': os.environ.get('DB_PASSWORD'),
+    'database': os.environ.get('DB_NAME', 'mydatabase')
 }
 
 def get_user_input():
-    user_input = input('Enter your name: ')
+    """
+    ✅ Added validation to prevent injection-style abuse
+    """
+    user_input = input('Enter your name: ').strip()
+
+    # Basic validation: only letters allowed
+    if not user_input.isalpha():
+        raise ValueError("Name must contain only letters.")
+
     return user_input
 
 def send_email(to, subject, body):
-    os.system(f'echo {body} | mail -s "{subject}" {to}')
+    """
+     Replaced os.system with subprocess to prevent command injection
+    """
+    command = ["mail", "-s", subject, to]
+
+    process = subprocess.Popen(
+        command,
+        stdin=subprocess.PIPE,
+        text=True
+    )
+    process.communicate(body)
 
 def get_data():
-    url = 'http://insecure-api.com/get-data'
+    """
+     Switched from HTTP to HTTPS to prevent MITM attacks
+    """
+    url = 'https://insecure-api.com/get-data'
     data = urlopen(url).read().decode()
     return data
 
 def save_to_db(data):
-    query = f"INSERT INTO mytable (column1, column2) VALUES ('{data}', 'Another Value')"
     connection = pymysql.connect(**db_config)
     cursor = connection.cursor()
-    cursor.execute(query)
+
+    """
+     Replaced f-string with parameterized query
+       This prevents SQL injection (AO3)
+    """
+    query = """
+        INSERT INTO mytable (column1, column2)
+        VALUES (%s, %s)
+    """
+
+    cursor.execute(query, (data, "Another Value"))
     connection.commit()
+
     cursor.close()
     connection.close()
 
@@ -36,6 +68,3 @@ if __name__ == '__main__':
     data = get_data()
     save_to_db(data)
     send_email('admin@example.com', 'User Input', user_input)
-
-
-// Small change for commit
